@@ -14,7 +14,8 @@ from mcda.models import (
 
 # Import MCDA methods
 from mcda.methods import (
-    TOPSIS, AHP, VIKOR, PROMETHEE, WSM, WPM, WASPAS
+    TOPSIS, AHP, VIKOR, PROMETHEE, PROMETHEE1, PROMETHEE2, PROMETHEE3, PROMETHEE4, PROMETHEE5, PROMETHEE6,
+    WSM, WPM, WASPAS
 )
 
 # Import weighting methods
@@ -92,7 +93,13 @@ class MCDAClient:
             "topsis": TOPSIS,
             "ahp": AHP,
             "vikor": VIKOR,
-            "promethee": PROMETHEE,
+            "promethee": PROMETHEE,        # Alias for PROMETHEE II
+            "promethee1": PROMETHEE1,
+            "promethee2": PROMETHEE2,
+            "promethee3": PROMETHEE3,
+            "promethee4": PROMETHEE4,
+            "promethee5": PROMETHEE5,
+            "promethee6": PROMETHEE6,
             "wsm": WSM,
             "wpm": WPM,
             "waspas": WASPAS

@@ -30,6 +30,7 @@ class AHP(MCDAMethod):
                 weights: Optional[np.ndarray] = None,
                 criteria_comparisons: Optional[np.ndarray] = None,
                 alternative_comparisons: Optional[List[np.ndarray]] = None,
+                consistency_threshold: float = 0.1,
                 **kwargs) -> MCDAResult:
         """Evaluate alternatives using AHP method.
         
@@ -39,6 +40,7 @@ class AHP(MCDAMethod):
             criteria_comparisons: Pairwise comparison matrix for criteria
             alternative_comparisons: List of pairwise comparison matrices for alternatives
                                      (one matrix per criterion)
+            consistency_threshold: Maximum acceptable consistency ratio (default: 0.1)
             
         Returns:
             MCDAResult containing preferences and rankings
@@ -59,14 +61,21 @@ class AHP(MCDAMethod):
             alternatives = decision_matrix.alternatives
         
         # Step 1: Get or calculate criteria weights
+        criteria_cr = None  # Consistency ratio for criteria
         if weights is not None:
             criteria_weights = weights
         elif criteria_comparisons is not None:
             # Use AHPWeighting to calculate weights
             ahp_weighting = AHPWeighting()
-            weighting_result = ahp_weighting.calculate_weights(criteria=criteria, 
-                                                               comparison_matrix=criteria_comparisons)
+            weighting_result = ahp_weighting.calculate_weights(
+                criteria=criteria, 
+                comparison_matrix=criteria_comparisons
+            )
             criteria_weights = np.array(weighting_result.weights)
+            
+            # Extract consistency ratio if available
+            if weighting_result.additional_data and 'consistency_ratio' in weighting_result.additional_data:
+                criteria_cr = weighting_result.additional_data['consistency_ratio']
             
             # If decision matrix provided but not criteria, get from weighting result
             if criteria is None:
@@ -143,16 +152,29 @@ class AHP(MCDAMethod):
         ranks = np.argsort(-overall_priorities)  # Descending order
         rankings = np.argsort(ranks) + 1  # Convert to 1-based rankings
         
+        # Check overall consistency
+        max_alt_cr = float(np.max(alt_consistency))
+        is_consistent = (criteria_cr is None or criteria_cr <= consistency_threshold) and max_alt_cr <= consistency_threshold
+        
+        # Prepare consistency info for the result
+        consistency_info = {
+            "criteria_consistency_ratio": criteria_cr,
+            "alternative_consistency_ratios": alt_consistency.tolist(),
+            "max_consistency_ratio": max(filter(lambda x: x is not None, [criteria_cr, max_alt_cr])),
+            "is_consistent": is_consistent,
+            "consistency_threshold": consistency_threshold
+        }
+        
         return MCDAResult(
             method_name=self.name,
             preferences=overall_priorities.tolist(),
             rankings=rankings.tolist(),
             alternatives=alternatives,
             additional_data={
+                "criteria": [c.name for c in criteria],
                 "criteria_weights": criteria_weights.tolist(),
                 "alternative_priorities": alt_priorities.tolist(),
-                "alternative_consistency": alt_consistency.tolist(),
-                "max_consistency_ratio": float(np.max(alt_consistency))
+                "consistency_info": consistency_info
             }
         )
     

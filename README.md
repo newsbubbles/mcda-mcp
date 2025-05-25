@@ -25,6 +25,12 @@ pip install -r requirements.txt
 - **AHP** (Analytic Hierarchy Process)
 - **VIKOR** (VIseKriterijumska Optimizacija I Kompromisno Resenje)
 - **PROMETHEE** (Preference Ranking Organization METHod for Enrichment of Evaluations)
+  - PROMETHEE I - Partial ranking using positive and negative flows
+  - PROMETHEE II - Complete ranking using net flows
+  - PROMETHEE III - Ranking with intervals to account for uncertainty
+  - PROMETHEE IV - Normalized net flows for continuous case
+  - PROMETHEE V - Net flows with constraints to filter feasible alternatives
+  - PROMETHEE VI - Min, central, and max flows to model hesitation in decision-making
 - **WSM** (Weighted Sum Model)
 - **WPM** (Weighted Product Model)
 - **WASPAS** (Weighted Aggregated Sum Product Assessment)
@@ -100,6 +106,72 @@ for i, alt in enumerate(result.alternatives):
     print(f"{alt.name}: Score = {result.preferences[i]:.4f}, Rank = {result.rankings[i]}")
 ```
 
+### Using the PROMETHEE Methods
+
+```python
+# Use PROMETHEE I for partial ranking
+result = client.evaluate({
+    "decision_matrix": decision_matrix,
+    "method": "promethee1",
+    "method_params": {
+        "preference_functions": ["linear", "usual", "v-shape"]
+    }
+})
+
+# Use PROMETHEE VI to analyze stability with weight ranges
+weight_ranges = [(0.3, 0.5), (0.3, 0.5), (0.1, 0.3)]  # min-max ranges
+result = client.evaluate({
+    "decision_matrix": decision_matrix,
+    "method": "promethee6",
+    "weights": weights,
+    "method_params": {
+        "preference_functions": ["linear", "usual", "v-shape"],
+        "weight_ranges": weight_ranges
+    }
+})
+```
+
+### Using AHP with Pairwise Comparisons
+
+```python
+# Define pairwise comparison matrix for criteria
+criteria_comparisons = [
+    [1, 3, 5],   # Criterion 1 compared to others
+    [1/3, 1, 2], # Criterion 2 compared to others
+    [1/5, 1/2, 1] # Criterion 3 compared to others
+]
+
+# Define pairwise comparison matrices for each alternative (one matrix per criterion)
+alternative_comparisons = [
+    [  # For Criterion 1
+        [1, 2, 3],
+        [1/2, 1, 2],
+        [1/3, 1/2, 1]
+    ],
+    [  # For Criterion 2
+        [1, 1/2, 2],
+        [2, 1, 3],
+        [1/2, 1/3, 1]
+    ],
+    [  # For Criterion 3
+        [1, 3, 1/2],
+        [1/3, 1, 1/4],
+        [2, 4, 1]
+    ]
+]
+
+# Use AHP with pairwise comparisons
+result = client.evaluate({
+    "decision_matrix": decision_matrix,  # Still needed for alternative/criteria info
+    "method": "ahp",
+    "method_params": {
+        "criteria_comparisons": criteria_comparisons,
+        "alternative_comparisons": alternative_comparisons,
+        "consistency_threshold": 0.1  # Maximum acceptable consistency ratio
+    }
+})
+```
+
 ### Running the MCP Server
 
 The MCP server allows the MCDA functionality to be accessed by LLMs like Claude.
@@ -141,6 +213,10 @@ python agent.py --model anthropic/claude-3.7-haiku
 > Help me calculate weights using the AHP method
 
 [Agent guides through pairwise comparisons and shows calculated weights]
+
+> Can you analyze this decision using PROMETHEE VI to account for my uncertainty in the weights?
+
+[Agent sets up weight ranges and shows how rankings might change with different weight combinations]
 ```
 
 ## Development
